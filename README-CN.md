@@ -1,58 +1,59 @@
-# ysp-web-rs
+# ysp-web-py
 
 > **致谢**
-> 1. 感谢 [IPTV 总部](http://t.me/iptvorganization)分享的 ysp-web-rs 源码
-> 2. 感谢 NOX 大神的 CMG 解密原始实现
+> 1. 感谢 [IPTV 总部](http://t.me/iptvorganization) 的分享
+> 2. 感谢 Gary's Club 提供的 ysp-live v8.1 基础包
 
-**English README**: [README.md](README.md)
+ysp-live v8.1 Python 单文件版 —— 央视/CGTN 直播流代理。无需 Docker，一条 `python3` 命令即跑。
 
-Rust 实现的央视频直播——62 路，WASM CMG 解密。
+## 特性
 
-## 包含内容
+- 30 路频道（仅 CCTV + CGTN），3 个分组：央视FHD / 央视UHD / CGTN
+- 默认锁死高码率（全频道 fhd）
+- 支持 7 天回看（部分频道）
+- 内置 EPG 聚合（`/epg.xml`），两个上游源合并
+- 单文件，零依赖（仅需 Python 3.8+ 标准库）
 
-- **62 路频道**，带分组（`group-title`）：央视FHD / 央视UHD / CGTN / 地方台 / 其他
-  - 央视FHD (21)：CCTV-1~17、5+、6、三个剧场
-  - 央视UHD (3)：CCTV-4K、CCTV-8K、CCTV-16 4K
-  - CGTN (6)：CGTN 主频道 + 5 个语种
-  - 地方台 (31)：省级卫视
-  - 其他 (1)：CETV-1
-- **Rust 单二进制**，WASM CMG 解密（官方播放器逻辑）
-- Rust 原生 TS 解密与重混
-- 单端口（8767）
-
-## Docker 部署
+## 快速开始
 
 ```bash
-docker build -f Dockerfile -t ysp-web-rs .
-docker run -d --name ysp-web-rs -p 8767:8767 --restart unless-stopped ysp-web-rs
+# 下载
+curl -sSL https://raw.githubusercontent.com/waastudios/ysp-web-rs/main/ysp-live.py -o ysp-live.py
+curl -sSL https://raw.githubusercontent.com/waastudios/ysp-web-rs/main/epg_agg.py -o epg_agg.py
+
+# 运行（默认 8767 端口）
+python3 ysp-live.py
+
+# 自定义端口
+python3 ysp-live.py --port 8080
 ```
 
-## 使用
+播放器里填：
+- 订阅：`http://<你的IP>:8767/cctv.m3u`
+- 节目单：`http://<你的IP>:8767/epg.xml`
 
-- 订阅：
-  ```
-  http://<IP>:8767/list.m3u
-  ```
-- 聚合 EPG（62 路，6 小时刷新）：
-  ```
-  http://<IP>:8767/epg.xml
-  ```
-- 频道 API：`http://<IP>:8767/channels`
-- 健康检查：`http://<IP>:8767/health`
+> `<你的IP>` 换成你服务器的公网 IP。`localhost` 只在服务器本机有效。
 
-## EPG 节目单订阅
+## 接口
 
-本项目自带聚合 EPG 接口（地址见上文使用一节），开箱即用，不用再手动填第三方 EPG 源：
+| 地址 | 说明 |
+|------|------|
+| `/cctv.m3u` | 订阅（30 路） |
+| `/epg.xml` | 聚合节目单（XMLTV） |
+| `/diag` | 诊断信息 |
+| `/health` | 健康检查 |
+| `/<频道>.m3u8` | 频道直播流，如 `/cctv1.m3u8` |
 
-- 内容：只包含本项目 62 路频道的节目单（央视FHD/央视UHD/CGTN/地方台/其他），无用频道已过滤
-- 数据源：自动合并以下两个上游 EPG（两源互补，单个源挂了不影响）：
-  - `https://live.fanmingming.com/e.xml`
-  - `https://epg.112114.xyz/pp.xml.gz`
-- 刷新：每 6 小时自动更新；首次访问时后台拉取，稍等片刻再刷新即可
+## 频道分组
 
-`/list.m3u` 订阅已默认指向该地址，播放器会自动加载节目单。
+- **央视FHD** —— CCTV-1..17（1080p 高码率）
+- **央视UHD** —— CCTV-4K、CTV-8K、CCTV-16 4K
+- **CGTN** —— CGTN 英语/法语/俄语/阿语/西语/纪录
 
-## 注意
+## 卸载
 
-- 设备注册在机房 VPS 上可用（已实测）。
-- 4K 频道在海外 IP 可能被地域锁（央视版权政策）。
+```bash
+# 前台运行按 Ctrl+C 停止；后台运行则：
+pkill -f ysp-live.py
+rm -f ysp-live.py epg_agg.py
+```
