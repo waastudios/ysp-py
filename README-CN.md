@@ -30,6 +30,7 @@ docker run -d --name ysp-web-rs -p 8767:8767 --restart unless-stopped ysp-web-rs
 ## 使用
 
 - 订阅：`http://<IP>:8767/list.m3u`
+- 聚合 EPG（62 路，6 小时刷新）：`http://<IP>:8767/epg.xml`
 - 频道 API：`http://<IP>:8767/channels`
 - 健康检查：`http://<IP>:8767/health`
 
