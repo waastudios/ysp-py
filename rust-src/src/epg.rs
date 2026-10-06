@@ -343,8 +343,24 @@ impl EpgAggregator {
         drop(inner);
         let _ = wanted_len;
 
+        // fanmingming CDN 缓存激进，加时间戳参数强制回源
+        let fetch_url = if url.contains("fanmingming.com") {
+            let sep = if url.contains('?') { "&" } else { "?" };
+            format!(
+                "{}{}_t={}",
+                url,
+                sep,
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+            )
+        } else {
+            url.to_string()
+        };
+
         let bytes = client
-            .get(url)
+            .get(&fetch_url)
             .send()
             .await
             .with_context(|| format!("fetch {}", url))?
@@ -353,7 +369,7 @@ impl EpgAggregator {
             .with_context(|| format!("read {}", url))?
             .to_vec();
 
-        if url.ends_with(".gz") {
+        if url.contains(".gz") {
             let mut decoder = GzDecoder::new(&bytes[..]);
             let mut out = Vec::new();
             decoder
