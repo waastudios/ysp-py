@@ -1,5 +1,7 @@
 # ysp-py
 
+[中文版](README-CN.md)
+
 > **Acknowledgments**
 > 1. Thanks to [IPTV Official Group](http://t.me/iptvorganization) for sharing
 > 2. Thanks to Gary's Club for the ysp-live v8.1 base
