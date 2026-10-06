@@ -19,8 +19,11 @@ ysp-live v8.1 Python 单文件版 —— 央视/CGTN 直播流代理。无需 Do
 ```bash
 # 下载
 curl -sSL https://raw.githubusercontent.com/waastudios/ysp-py/main/ysp-live.py -o ysp-live.py
-curl -sSL https://raw.githubusercontent.com/waastudios/ysp-py/main/epg_agg.py -o epg_agg.py
 
+# 直接从 URL 运行（单文件，无需下载）
+curl -sSL https://raw.githubusercontent.com/waastudios/ysp-py/main/ysp-live.py | python3
+
+# 或先下载再运行
 # 运行（默认 8767 端口）
 python3 ysp-live.py
 
@@ -55,5 +58,4 @@ python3 ysp-live.py --port 8080
 ```bash
 # 前台运行按 Ctrl+C 停止；后台运行则：
 pkill -f ysp-live.py
-rm -f ysp-live.py epg_agg.py
 ```
