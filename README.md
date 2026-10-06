@@ -34,6 +34,19 @@ docker run -d --name ysp-web-rs -p 8767:8767 --restart unless-stopped ysp-web-rs
 - Channels API: `http://<IP>:8767/channels`
 - Health: `http://<IP>:8767/health`
 
+## EPG Guide Subscription
+
+This project ships a built-in aggregated EPG endpoint — no need to configure third-party EPG sources manually:
+
+- URL: `http://<IP>:8767/epg.xml`
+- Content: programme guide for only the 62 channels in this project (CCTV FHD / CCTV UHD / CGTN / regional / others); irrelevant channels are filtered out
+- Upstream sources (merged automatically; the two complement each other, one going down won't break the other):
+  - `https://live.fanmingming.com/e.xml`
+  - `https://epg.112114.xyz/pp.xml.gz`
+- Refresh: auto-updates every 6 hours; fetched in the background on first access, just retry after a moment
+
+The `/list.m3u` playlist already points to this address, so players load the guide automatically.
+
 ## Notes
 
 - Device registration works from datacenter VPS (tested).
