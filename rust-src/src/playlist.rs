@@ -2,7 +2,7 @@ use axum::http::{HeaderMap, Uri};
 
 use crate::{
     config::Channel,
-    constants::{EPG_URL, NOTICE_LOGO_URL, NOTICE_URL},
+    constants::{NOTICE_LOGO_URL, NOTICE_URL},
     prefix::{abs_url, append_recursive_prefix},
 };
 
@@ -17,8 +17,10 @@ pub fn m3u_escape(value: impl AsRef<str>) -> String {
 }
 
 pub fn build_list_m3u(headers: &HeaderMap, uri: &Uri, channels: &[Channel]) -> String {
+    // EPG 改用本地聚合接口 /epg.xml（两个上游源合并，只含本项目频道）
+    let epg_url = abs_url(headers, uri, "/epg.xml");
     let mut lines = vec![
-        format!("#EXTM3U x-tvg-url=\"{}\"", m3u_escape(EPG_URL)),
+        format!("#EXTM3U x-tvg-url=\"{}\"", m3u_escape(epg_url)),
         format!(
             "#EXTINF:-1 tvg-name=\"注意事项\" tvg-logo=\"{}\" group-title=\"注意事项\",注意事项",
             m3u_escape(NOTICE_LOGO_URL)
@@ -60,7 +62,7 @@ mod tests {
             group: "卫视".to_string(),
         }];
         let text = build_list_m3u(&headers, &uri, &channels);
-        assert!(text.contains("#EXTM3U x-tvg-url=\"https://epg.zsdc.eu.org/t.xml\""));
+        assert!(text.contains("#EXTM3U x-tvg-url=\"http://127.0.0.1:8787/epg.xml\""));
         assert!(text.contains("tvg-name=\"山东卫视\""));
         assert!(text.contains("group-title=\"卫视\",山东卫视"));
         assert!(text.contains("http://127.0.0.1:8787/live/shandongws.m3u8"));
