@@ -4,8 +4,8 @@
 //! 合并去重后生成单一 XMLTV，供 /epg.xml 接口使用。
 //!
 //! 上游源:
-//!   1. https://live.fanmingming.com/e.xml
-//!   2. https://epg.112114.xyz/pp.xml.gz
+//!   1. https://epg.pw/xmltv/epg_CN.xml.gz（数字 ID，需映射）
+//!   2. https://epg.zsdc.eu.org/t.xml.gz
 //!
 //! 本模块只服务 web 版（62 路），与 docker 版独立，不合并。
 
@@ -24,9 +24,40 @@ use tracing::warn;
 
 /// 上游 EPG 源
 const UPSTREAM_SOURCES: &[&str] = &[
-    "https://live.fanmingming.com/e.xml",
-    "https://epg.112114.xyz/pp.xml.gz",
+    "https://epg.pw/xmltv/epg_CN.xml.gz",
+    "https://epg.zsdc.eu.org/t.xml.gz",
 ];
+
+/// epg.pw 数字频道 ID → 标准 ID 映射
+fn normalize_epg_id<'a>(cid: &'a str, url: &str) -> &'a str {
+    if !url.contains("epg.pw") {
+        return cid;
+    }
+    match cid {
+        "545932" => "CCTV1", "545933" => "CCTV2", "545934" => "CCTV3",
+        "545935" => "CCTV4", "545936" => "CCTV5", "545937" => "CCTV5+",
+        "545938" => "CCTV6", "545939" => "CCTV7", "545940" => "CCTV8",
+        "545941" => "CCTV9", "545942" => "CCTV10", "545943" => "CCTV11",
+        "545944" => "CCTV12", "545945" => "CCTV13", "545946" => "CCTV14",
+        "545947" => "CCTV15", "545948" => "CCTV16", "545949" => "CCTV17",
+        "539634" => "CCTV4K", "545950" => "CCTV-8K",
+        "544310" => "CCTV怀旧剧场", "544354" => "CCTV第一剧场", "544381" => "CCTV风云剧场",
+        "544390" => "CGTN纪录", "570483" => "CGTN西语", "570484" => "CGTN俄语",
+        "570492" => "CGTN阿语", "570493" => "CGTN法语",
+        "539726" => "北京卫视", "539834" => "江苏卫视", "539699" => "东方卫视",
+        "539700" => "浙江卫视", "539731" => "湖南卫视", "539692" => "湖北卫视",
+        "539712" => "广东卫视", "539698" => "广西卫视", "539850" => "黑龙江卫视",
+        "539659" => "海南卫视", "539790" => "重庆卫视", "539856" => "深圳卫视",
+        "539826" => "四川卫视", "539838" => "河南卫视", "539717" => "东南卫视",
+        "539814" => "贵州卫视", "539876" => "江西卫视", "539777" => "辽宁卫视",
+        "539701" => "安徽卫视", "539695" => "河北卫视", "539740" => "山东卫视",
+        "539703" => "天津卫视", "539864" => "吉林卫视", "539697" => "陕西卫视",
+        "539644" => "宁夏卫视", "539839" => "内蒙古卫视", "539641" => "云南卫视",
+        "539843" => "山西卫视", "539728" => "青海卫视", "539730" => "西藏卫视",
+        "539831" => "新疆卫视",
+        _ => cid,
+    }
+}
 
 /// 缓存刷新间隔：6 小时
 const REFRESH_INTERVAL: Duration = Duration::from_secs(6 * 3600);
@@ -129,7 +160,7 @@ struct Parsed {
 }
 
 /// 简单 XMLTV 解析：只提取 channel / programme
-fn parse_xmltv(data: &[u8], wanted: &HashSet<String>) -> Result<Parsed> {
+fn parse_xmltv(data: &[u8], wanted: &HashSet<String>, url: &str) -> Result<Parsed> {
     let mut reader = Reader::from_reader(data);
     reader.config_mut().trim_text(true);
 
@@ -151,7 +182,8 @@ fn parse_xmltv(data: &[u8], wanted: &HashSet<String>) -> Result<Parsed> {
                         .attributes()
                         .filter_map(|a| a.ok())
                         .find(|a| a.key.as_ref() == b"id")
-                        .and_then(|a| a.unescape_value().ok().map(|v| v.into_owned()));
+                        .and_then(|a| a.unescape_value().ok().map(|v| v.into_owned()))
+                        .map(|cid| normalize_epg_id(&cid, url).to_string());
                     cur_display.clear();
                 }
                 b"display-name" => {
@@ -170,6 +202,7 @@ fn parse_xmltv(data: &[u8], wanted: &HashSet<String>) -> Result<Parsed> {
                             _ => {}
                         }
                     }
+                    channel = normalize_epg_id(&channel, url).to_string();
                     if wanted.contains(&channel) {
                         cur_pg = Some(Programme {
                             channel,
@@ -343,24 +376,8 @@ impl EpgAggregator {
         drop(inner);
         let _ = wanted_len;
 
-        // fanmingming CDN 缓存激进，加时间戳参数强制回源
-        let fetch_url = if url.contains("fanmingming.com") {
-            let sep = if url.contains('?') { "&" } else { "?" };
-            format!(
-                "{}{}_t={}",
-                url,
-                sep,
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-            )
-        } else {
-            url.to_string()
-        };
-
         let bytes = client
-            .get(&fetch_url)
+            .get(url)
             .send()
             .await
             .with_context(|| format!("fetch {}", url))?
@@ -397,7 +414,7 @@ impl EpgAggregator {
                     continue;
                 }
             };
-            let parsed = match parse_xmltv(&data, &wanted) {
+            let parsed = match parse_xmltv(&data, &wanted, url) {
                 Ok(p) => p,
                 Err(e) => {
                     warn!("epg parse failed {}: {:#}", url, e);
