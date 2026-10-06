@@ -29,10 +29,13 @@ docker run -d --name ysp-web-rs -p 8767:8767 --restart unless-stopped ysp-web-rs
 
 ## Usage
 
-- Subscription: `http://<IP>:8767/list.m3u`
+- Subscription:
+  ```
+  http://<IP>:8767/list.m3u
+  ```
 - Aggregated EPG (62 channels, refreshes every 6h):
   ```
-  http://localhost:8767/epg.xml
+  http://<IP>:8767/epg.xml
   ```
 - Channels API: `http://<IP>:8767/channels`
 - Health: `http://<IP>:8767/health`
@@ -41,9 +44,9 @@ docker run -d --name ysp-web-rs -p 8767:8767 --restart unless-stopped ysp-web-rs
 
 This project ships a built-in aggregated EPG endpoint — no need to configure third-party EPG sources manually:
 
-- URL (copy-paste ready; replace `localhost` with your VPS public IP or LAN IP):
+- URL (copy-paste ready; replace `<IP>` with your VPS public IP or LAN IP):
   ```
-  http://localhost:8767/epg.xml
+  http://<IP>:8767/epg.xml
   ```
 - Content: programme guide for only the 62 channels in this project (CCTV FHD / CCTV UHD / CGTN / regional / others); irrelevant channels are filtered out
 - Upstream sources (merged automatically; the two complement each other, one going down won't break the other):
