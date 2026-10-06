@@ -2921,7 +2921,8 @@ class Handler (BaseHTTPRequestHandler ):
             host =self .headers .get ('Host',f'localhost:{server_port }')
             text =(
             f"ysp-live IPTV 直播网关运行中 (端口: {server_port })\n\n"
-            f"全频道订阅: http://{host }/all.m3u\n"
+            f"全频道订阅: http://{host }/cctv.m3u\n"
+            f"节目单: http://{host }/epg.xml\n"
             f"系统健康度: http://{host }/health\n"
             f"实时诊断日志: http://{host }/diag\n"
             )
@@ -3349,11 +3350,13 @@ def main ():
         threading .Thread (target =init_resolver ,daemon =True ,name ='engine-init').start ()
     srv =ThreadingHTTPServer ((args .bind ,args .port ),Handler )
     channels_count =len (global_channel_dir .unique_channels ())
-    c_yangshi =len ([c for c in global_channel_dir .unique_channels ()if c ['group']=='央视'])
-    c_weishi =len ([c for c in global_channel_dir .unique_channels ()if c ['group']=='卫视'])
+    c_fhd =len ([c for c in global_channel_dir .unique_channels ()if c ['group']=='央视FHD'])
+    c_uhd =len ([c for c in global_channel_dir .unique_channels ()if c ['group']=='央视UHD'])
+    c_cgtn =len ([c for c in global_channel_dir .unique_channels ()if c ['group']=='CGTN'])
     log ('====================================================================')
-    log (f'ysp-live v8.1 启动成功: {channels_count } 个独立频道 (央视 {c_yangshi } 路, 卫视 {c_weishi } 路)')
-    log (f'全频道订阅:   http://localhost:{args .port }/all.m3u')
+    log (f'ysp-live v8.1 启动成功: {channels_count } 个独立频道 (央视FHD {c_fhd } 路, 央视UHD {c_uhd } 路, CGTN {c_cgtn } 路)')
+    log (f'全频道订阅:   http://localhost:{args .port }/cctv.m3u')
+    log (f'节目单:       http://localhost:{args .port }/epg.xml')
     log (f'系统健康度:   http://localhost:{args .port }/health')
     log (f'实时诊断日志: http://localhost:{args .port }/diag')
     log ('====================================================================')
