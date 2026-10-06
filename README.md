@@ -1,7 +1,7 @@
 # ysp-web-rs
 
 > **Acknowledgments**
-> 1. Thanks to IPTV Official Group for sharing the ysp-web-rs source code
+> 1. Thanks to [IPTV Official Group](http://t.me/iptvorganization) for sharing the ysp-web-rs source code
 > 2. Thanks to NOX for the original CMG decryption implementation
 
 **中文文档**: [README-CN.md](README-CN.md)
