@@ -72,6 +72,14 @@ Then in your player:
 
 Plus 3 theatre channels (CCTV第一剧场 / 风云剧场 / 怀旧剧场) under 央视FHD.
 
+## 4K channels note
+
+When opening a 4K channel (CCTV-4K, CCTV-8K, CCTV-16 4K) for the first time, **please wait at least 1 minute** before expecting video.
+
+4K streams go through the device protocol, which needs device registration, warm-up and stream fetching (~30-60s). Black screen or buffering during this time is normal; 4K video appears once warm-up completes.
+
+> APTV has no Node.js runtime, so the `ysp-engine.js` WASM fallback engine is unavailable. 4K relies entirely on the device protocol. If device registration fails, 4K channels automatically fall back to 1080p.
+
 ## How the stream fallback works
 
 For each channel request, the gateway tries in order:
