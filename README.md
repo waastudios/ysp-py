@@ -42,12 +42,8 @@ docker run -d --name ysp-web-rs -p 8767:8767 --restart unless-stopped ysp-web-rs
 
 ## EPG Guide Subscription
 
-This project ships a built-in aggregated EPG endpoint — no need to configure third-party EPG sources manually:
+This project ships a built-in aggregated EPG endpoint (see Usage above for the URL) — no need to configure third-party EPG sources manually:
 
-- URL (copy-paste ready; replace `<IP>` with your VPS public IP or LAN IP):
-  ```
-  http://<IP>:8767/epg.xml
-  ```
 - Content: programme guide for only the 62 channels in this project (CCTV FHD / CCTV UHD / CGTN / regional / others); irrelevant channels are filtered out
 - Upstream sources (merged automatically; the two complement each other, one going down won't break the other):
   - `https://live.fanmingming.com/e.xml`
