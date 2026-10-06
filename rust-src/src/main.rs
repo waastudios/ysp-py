@@ -2,6 +2,7 @@ mod assets;
 mod cmg;
 mod config;
 mod constants;
+mod epg;
 mod flow;
 mod live;
 mod media;
@@ -38,6 +39,7 @@ use tracing::{info, warn};
 use crate::{
     config::ChannelDirectory,
     constants::{DEFAULT_HOST, DEFAULT_PORT, NOTICE_CACHE_TTL_MS, NOTICE_URL},
+    epg::EpgAggregator,
     live::LiveClient,
     media::MediaPipeline,
     playlist::build_list_m3u,
@@ -63,6 +65,7 @@ struct AppState {
     media: MediaPipeline,
     notice_cache: Arc<Mutex<HashMap<String, u128>>>,
     stats: Arc<Mutex<Stats>>,
+    epg: EpgAggregator,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -117,6 +120,23 @@ async fn main() -> Result<()> {
 
     let live = LiveClient::new()?;
     let media = MediaPipeline::new(live.clone())?;
+
+    // Fail fast if the packaged YAML is missing or malformed (needed for EPG channel list).
+    let initial_channels = ChannelDirectory::load(&args.channels)?;
+    info!(
+        path = %initial_channels.path.display(),
+        count = initial_channels.channels.len(),
+        "loaded channel directory"
+    );
+
+    // EPG 聚合器：只保留本项目 62 路频道的 EPG（web 版独立，不与 docker 版合并）
+    let epg_slugs: Vec<String> = initial_channels
+        .channels
+        .iter()
+        .map(|c| c.ch.clone())
+        .collect();
+    let epg = EpgAggregator::new(epg::wanted_epg_ids(&epg_slugs));
+
     let state = AppState {
         channels_path: args.channels.clone(),
         live,
@@ -126,20 +146,14 @@ async fn main() -> Result<()> {
             started_at_ms: now_ms(),
             ..Stats::default()
         })),
+        epg,
     };
-
-    // Fail fast if the packaged YAML is missing or malformed.
-    let initial_channels = ChannelDirectory::load(&state.channels_path)?;
-    info!(
-        path = %initial_channels.path.display(),
-        count = initial_channels.channels.len(),
-        "loaded channel directory"
-    );
 
     let app = Router::new()
         .route("/health", get(health))
         .route("/channels", get(channels))
         .route("/list.m3u", get(list_m3u))
+        .route("/epg.xml", get(epg_xml))
         .route("/live/{file}", get(live_playlist))
         .route("/segment/{ch}/{file}", get(segment))
         .layer(CorsLayer::permissive())
@@ -152,6 +166,47 @@ async fn main() -> Result<()> {
         .with_graceful_shutdown(shutdown_signal())
         .await?;
     Ok(())
+}
+
+async fn epg_xml(State(state): State<AppState>) -> Response {
+    // 聚合 EPG：两个上游源合并，只含本项目 62 路频道
+    let xml = state.epg.get_xml().await;
+    let xml = match xml {
+        Some(x) => x,
+        None => {
+            // 首次拉取中，尝试同步刷新一次
+            match state.epg.refresh_now().await {
+                Ok(true) => match state.epg.get_xml().await {
+                    Some(x) => x,
+                    None => {
+                        return (
+                            StatusCode::BAD_GATEWAY,
+                            "EPG fetch failed\n",
+                        )
+                            .into_response()
+                    }
+                },
+                _ => {
+                    let err = state
+                        .epg
+                        .last_error()
+                        .await
+                        .unwrap_or_else(|| "unknown".to_string());
+                    return (
+                        StatusCode::BAD_GATEWAY,
+                        format!("EPG fetch failed: {}\n", err),
+                    )
+                        .into_response();
+                }
+            }
+        }
+    };
+    (
+        StatusCode::OK,
+        [(header::CONTENT_TYPE, "application/xml; charset=utf-8")],
+        xml,
+    )
+        .into_response()
 }
 
 async fn health(State(state): State<AppState>) -> Response {
@@ -197,6 +252,7 @@ async fn health(State(state): State<AppState>) -> Response {
         api_flow,
         routes: vec![
             "/list.m3u",
+            "/epg.xml",
             "/live/<ch>.m3u8",
             "/segment/<ch>/<id>.ts",
             "/channels",
