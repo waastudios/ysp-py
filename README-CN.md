@@ -1,7 +1,7 @@
 # ysp-web-rs
 
 > **致谢**
-> 1. 感谢 IPTV 总部分享的 ysp-web-rs 源码
+> 1. 感谢 [IPTV 总部](http://t.me/iptvorganization)分享的 ysp-web-rs 源码
 > 2. 感谢 NOX 大神的 CMG 解密原始实现
 
 **English README**: [README.md](README.md)
