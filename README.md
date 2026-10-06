@@ -18,8 +18,8 @@ ysp-live v8.1 Python single-file version — CCTV/CGTN live stream proxy. No Doc
 
 ```bash
 # download
-curl -sSL https://raw.githubusercontent.com/waastudios/ysp-web-rs/main/ysp-live.py -o ysp-live.py
-curl -sSL https://raw.githubusercontent.com/waastudios/ysp-web-rs/main/epg_agg.py -o epg_agg.py
+curl -sSL https://raw.githubusercontent.com/waastudios/ysp-py/main/ysp-live.py -o ysp-live.py
+curl -sSL https://raw.githubusercontent.com/waastudios/ysp-py/main/epg_agg.py -o epg_agg.py
 
 # run (default port 8767)
 python3 ysp-live.py
