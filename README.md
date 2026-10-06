@@ -1,58 +1,60 @@
-# ysp-web-rs
+# ysp-web-py
 
 > **Acknowledgments**
-> 1. Thanks to [IPTV Official Group](http://t.me/iptvorganization) for sharing the ysp-web-rs source code
-> 2. Thanks to NOX for the original CMG decryption implementation
+> 1. Thanks to [IPTV Official Group](http://t.me/iptvorganization) for sharing
+> 2. Thanks to Gary's Club for the ysp-live v8.1 base
 
-**中文文档**: [README-CN.md](README-CN.md)
+ysp-live v8.1 Python single-file version — CCTV/CGTN live stream proxy. No Docker required, just `python3`.
 
-CCTV live streaming via Rust — 62 channels with WASM-based CMG decryption.
+## Features
 
-## What's inside
+- 30 channels (CCTV + CGTN only), 3 groups: 央视FHD / 央视UHD / CGTN
+- High bitrate locked by default (fhd for all channels)
+- 7-day catchup for supported channels
+- Built-in EPG aggregator (`/epg.xml`), merged from two upstream sources
+- Single file, zero dependencies (Python 3.8+ stdlib only)
 
-- **62 channels** with groups (`group-title`): 央视FHD / 央视UHD / CGTN / 地方台 / 其他
-  - 央视FHD (21): CCTV-1~17, 5+, 6, 3 theater channels
-  - 央视UHD (3): CCTV-4K, CCTV-8K, CCTV-16 4K
-  - CGTN (6): CGTN + 5 language channels
-  - 地方台 (31): Provincial satellite channels
-  - 其他 (1): CETV-1
-- **Rust single binary** with WASM-based CMG decryption (official player logic)
-- TS decrypt & remux in native Rust
-- Single port (8767)
-
-## Docker deploy
+## Quick Start
 
 ```bash
-docker build -f Dockerfile -t ysp-web-rs .
-docker run -d --name ysp-web-rs -p 8767:8767 --restart unless-stopped ysp-web-rs
+# download
+curl -sSL https://raw.githubusercontent.com/waastudios/ysp-web-rs/main/ysp-live.py -o ysp-live.py
+curl -sSL https://raw.githubusercontent.com/waastudios/ysp-web-rs/main/epg_agg.py -o epg_agg.py
+
+# run (default port 8767)
+python3 ysp-live.py
+
+# custom port
+python3 ysp-live.py --port 8080
 ```
 
-## Usage
+Then open in your player:
+- Subscription: `http://<your-ip>:8767/cctv.m3u`
+- EPG: `http://<your-ip>:8767/epg.xml`
 
-- Subscription:
-  ```
-  http://<IP>:8767/list.m3u
-  ```
-- Aggregated EPG (62 channels, refreshes every 6h):
-  ```
-  http://<IP>:8767/epg.xml
-  ```
-- Channels API: `http://<IP>:8767/channels`
-- Health: `http://<IP>:8767/health`
+> Replace `<your-ip>` with your server's public IP. `localhost` only works on the server itself.
 
-## EPG Guide Subscription
+## Endpoints
 
-This project ships a built-in aggregated EPG endpoint (see Usage above for the URL) — no need to configure third-party EPG sources manually:
+| Path | Description |
+|------|-------------|
+| `/cctv.m3u` | Playlist (30 channels) |
+| `/epg.xml` | Aggregated EPG (XMLTV) |
+| `/diag` | Diagnostics |
+| `/health` | Health check |
+| `/<channel>.m3u8` | Channel stream, e.g. `/cctv1.m3u8` |
 
-- Content: programme guide for only the 62 channels in this project (CCTV FHD / CCTV UHD / CGTN / regional / others); irrelevant channels are filtered out
-- Upstream sources (merged automatically; the two complement each other, one going down won't break the other):
-  - `https://live.fanmingming.com/e.xml`
-  - `https://epg.112114.xyz/pp.xml.gz`
-- Refresh: auto-updates every 6 hours; fetched in the background on first access, just retry after a moment
+## Channel Groups
 
-The `/list.m3u` playlist already points to this address, so players load the guide automatically.
+- **央视FHD** — CCTV-1..17 (1080p high bitrate)
+- **央视UHD** — CCTV-4K, CCTV-8K, CCTV-16 4K
+- **CGTN** — CGTN English/French/Russian/Arabic/Spanish/Documentary
 
-## Notes
+## Uninstall
 
-- Device registration works from datacenter VPS (tested).
-- 4K channels may be geo-blocked from overseas IPs (CCTV copyright policy).
+```bash
+# stop the process (Ctrl+C if running in foreground)
+# or if running in background:
+pkill -f ysp-live.py
+rm -f ysp-live.py epg_agg.py
+```
