@@ -34,6 +34,19 @@ docker run -d --name ysp-web-rs -p 8767:8767 --restart unless-stopped ysp-web-rs
 - 频道 API：`http://<IP>:8767/channels`
 - 健康检查：`http://<IP>:8767/health`
 
+## EPG 节目单订阅
+
+本项目自带聚合 EPG 接口，开箱即用，不用再手动填第三方 EPG 源：
+
+- 地址：`http://<IP>:8767/epg.xml`
+- 内容：只包含本项目 62 路频道的节目单（央视FHD/央视UHD/CGTN/地方台/其他），无用频道已过滤
+- 数据源：自动合并以下两个上游 EPG（两源互补，单个源挂了不影响）：
+  - `https://live.fanmingming.com/e.xml`
+  - `https://epg.112114.xyz/pp.xml.gz`
+- 刷新：每 6 小时自动更新；首次访问时后台拉取，稍等片刻再刷新即可
+
+`/list.m3u` 订阅已默认指向该地址，播放器会自动加载节目单。
+
 ## 注意
 
 - 设备注册在机房 VPS 上可用（已实测）。
