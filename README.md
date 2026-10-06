@@ -30,6 +30,7 @@ docker run -d --name ysp-web-rs -p 8767:8767 --restart unless-stopped ysp-web-rs
 ## Usage
 
 - Subscription: `http://<IP>:8767/list.m3u`
+- Aggregated EPG (62 channels, refreshes every 6h): `http://<IP>:8767/epg.xml`
 - Channels API: `http://<IP>:8767/channels`
 - Health: `http://<IP>:8767/health`
 
