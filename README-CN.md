@@ -1,5 +1,7 @@
 # ysp-py
 
+[English](README.md)
+
 > **致谢**
 > 1. 感谢 [IPTV 总部](http://t.me/iptvorganization) 的分享
 > 2. 感谢 Gary's Club 提供的 ysp-live v8.1 基础包
